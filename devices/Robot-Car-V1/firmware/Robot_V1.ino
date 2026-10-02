@@ -113,8 +113,8 @@ void scan() {
     Serial.print(angle);
     Serial.print(":");
     Serial.println(distance);
-    sweep(90);
   }
+  sweep(90);
   Serial.println("SCAN_DONE");
 }
 

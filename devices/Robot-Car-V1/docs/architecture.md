@@ -26,6 +26,7 @@ Uno also handles time-sensitive sensor timing and motor control.
 Browser → HTTP → Flask → Serial → Arduino → (physical action, or serial 
 response) → Flask (background thread) → JSON → Browser
 
+
 ## V1 Hardware Constraint: PWM Pin Availability
 
 The Arduino Uno has six PWM-capable pins. Attaching the Servo library 
@@ -44,11 +45,25 @@ This is a scoping decision, not a bug. Planned Version 2 fix: add a PCA9685
 PWM driver board, which provides 16 additional PWM channels, removing 
 this constraint entirely.
 
+
+## Physical Build
+
+V1 used LEGO for the chassis, a deliberate rapid-prototyping choice to 
+validate the electrical and software architecture without investing time 
+in a custom frame before the control system was proven. Despite the 
+material, the chassis followed real mechanical reasoning: a modular 
+design (motors, battery, sensor/servo, and "brain" as separable units) 
+for easy disassembly during debugging, with the battery — the heaviest 
+component — placed directly over the wheel modules to minimize torque 
+load during turns. Phase 2 replaces this with a soldered, purpose-built 
+frame.
+
+
 ## Media
 
-- **Schematic:** [`media/schematic.png`](media/schematic.png) 
-  ([KiCad source](media/robot-car.kicad_sch))
-- **Physical build:** [`media/robot-photo.jpg`](media/robot-photo.jpg)
+- **Full system demo (browser control → robot response):** https://youtu.be/HuvUpwN8BuI
 - **Modular design:** https://youtu.be/toOqbU9Gd-k
 - **Modular design breakdown:** https://youtu.be/CyCH8XhwyrI
-- **Full system demo (browser control → robot response):** https://youtu.be/HuvUpwN8BuI
+- **Physical build:** [`media/robot-photo.jpg`](media/robot-photo.jpg)
+- **Schematic:** [`media/schematic.png`](media/schematic.png) 
+  ([KiCad source](media/robot-car.kicad_sch))

@@ -53,7 +53,8 @@ from any device on the same network.
 ## Status
 
 Version 1 is complete and functional: all three subsystems (light, move, 
-scan) work end-to-end, browser to hardware and back. Known V1 limitations 
-(blue LED channel omitted, binary reverse/turn intensity, no soldered 
-connections) are documented in `docs/architecture.md` and addressed in 
-planned Phase 2 work.
+scan) work end-to-end, browser to hardware and back. V1 ran against a 
+hardware constraint — attaching the servo library consumes a timer the 
+Uno needs for PWM on two pins, leaving too few PWM-capable pins for full 
+RGB and full variable-speed control in both directions. See 
+`docs/architecture.md` for the tradeoff and what V1 scoped out as a result.

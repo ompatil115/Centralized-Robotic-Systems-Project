@@ -43,3 +43,12 @@ plus full RGB) requires seven. V1 scoped down accordingly:
 This is a scoping decision, not a bug. Planned Version 2 fix: add a PCA9685 
 PWM driver board, which provides 16 additional PWM channels, removing 
 this constraint entirely.
+
+## Media
+
+- **Schematic:** [`media/schematic.png`](media/schematic.png) 
+  ([KiCad source](media/robot-car.kicad_sch))
+- **Physical build:** [`media/robot-photo.jpg`](media/robot-photo.jpg)
+- **Modular design:** https://youtu.be/toOqbU9Gd-k
+- **Modular design breakdown:** https://youtu.be/CyCH8XhwyrI
+- **Full system demo (browser control → robot response):** https://youtu.be/HuvUpwN8BuI

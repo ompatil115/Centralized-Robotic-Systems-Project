@@ -8,8 +8,8 @@ The project is being developed incrementally. Each phase introduces a new roboti
 
 | Phase | Device or Capability | Status |
 |---|---|---|
-| Phase 1 | Embedded robotic vehicle | Complete |
-| Phase 2 | Motion-controlled robotic arm | Concept development |
+| Phase 1 | Embedded robotic vehicle | Complete (V1 scope) |
+| Phase 2 | Additional robotic device (TBD) | Concept exploration |
 | Future | Unified multi-device interface | Planned |
 
 At present, the repository contains the completed Phase 1 robotic vehicle. Multi-device coordination has not been implemented yet.
@@ -51,3 +51,6 @@ Python / Flask
  Arduino Uno
        |
 Motors, Servo, Ultrasonic Sensor, and Lighting
+```
+
+See [`Robot-Car-V1/`](Robot-Car-V1/) for full build documentation, firmware, backend code, and media.

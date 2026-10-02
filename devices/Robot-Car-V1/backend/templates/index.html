@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Robot Control</title>
+</head>
+<body>
+
+  <div>
+    <input type="range" id="lightSlider" min="0" max="100" value="100"
+           style="width: 300px; height: 20px; -webkit-appearance: none;
+                  background: linear-gradient(to right, red 0%, orange 33%, yellow 66%, green 100%);
+                  border-radius: 10px;"
+           oninput="sendColor(this.value)">
+  </div>
+
+  <div style="display: inline-block; text-align: center; margin-left: 20px;">
+    <div id="offButton" onclick="turnOff()"
+         style="width: 40px; height: 40px; border-radius: 50%; border: 2px solid black;
+                cursor: pointer; display: inline-block;"></div>
+    <div>Off</div>
+  </div>
+
+  <div id="padContainer" style="position: relative; width: 200px; height: 200px; margin: 50px; background: #eee; border-radius: 10px;">
+    <div id="handle" style="position: absolute; width: 40px; height: 40px; background: #333;
+                             border-radius: 50%; left: 80px; top: 80px; cursor: pointer; touch-action: none;"></div>
+  </div>
+
+  <button id="scanButton" onclick="startScan()">Scan</button>
+  <canvas id="ppiCanvas" width="400" height="220" style="background: #111; display: block; margin-top: 20px;"></canvas>
+  <div id="scanResults" style="color: white; font-family: monospace; margin-top: 20px;"></div>
+
+  <script>
+
+    let isOff = false;
+
+    function sliderToRG(value) {
+      const stops = [
+        {pos: 0,   r: 255, g: 0},
+        {pos: 33,  r: 255, g: 80},
+        {pos: 66,  r: 255, g: 180},
+        {pos: 100, r: 0,   g: 255}
+      ];
+
+      let lower = stops[0];
+      let upper = stops[stops.length - 1];
+      for (let i = 0; i < stops.length - 1; i++) {
+        if (value >= stops[i].pos && value <= stops[i + 1].pos) {
+          lower = stops[i];
+          upper = stops[i + 1];
+          break;
+        }
+      }
+
+      const range = upper.pos - lower.pos;
+      const frac = range === 0 ? 0 : (value - lower.pos) / range;
+
+      const r = Math.round(lower.r + (upper.r - lower.r) * frac);
+      const g = Math.round(lower.g + (upper.g - lower.g) * frac);
+
+      return {r, g};
+    }
+
+    function sendColor(value) {
+      isOff = false;
+      document.getElementById('offButton').style.background = 'white';
+      const {r, g} = sliderToRG(value);
+      fetch('/light', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: `r=${r}&g=${g}`
+      });
+    }
+
+    function turnOff() {
+      isOff = true;
+      document.getElementById('offButton').style.background = 'black';
+      fetch('/light', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'r=0&g=0'
+      });
+    }
+
+    const padContainer = document.getElementById('padContainer');
+    const handle = document.getElementById('handle');
+    const maxRadius = 80;
+
+    let currentCommand = null;
+    let sendInterval = null;
+
+    function updatePad(clientX, clientY) {
+      const rect = padContainer.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+
+      let dx = clientX - centerX;
+      let dy = clientY - centerY;
+
+      if (Math.abs(dx) > Math.abs(dy)) {
+        dy = 0;
+      } else {
+        dx = 0;
+      }
+
+      dx = Math.max(-maxRadius, Math.min(maxRadius, dx));
+      dy = Math.max(-maxRadius, Math.min(maxRadius, dy));
+
+      handle.style.left = (100 + dx - 20) + 'px';
+      handle.style.top = (100 + dy - 20) + 'px';
+
+      if (dx === 0 && dy === 0) {
+        currentCommand = null;
+      } else if (dx !== 0) {
+        const intensity = Math.round((Math.abs(dx) / maxRadius) * 100);
+        currentCommand = {type: 'TURN', value: dx > 0 ? intensity : -intensity};
+      } else {
+        const intensity = Math.round((Math.abs(dy) / maxRadius) * 100);
+        currentCommand = {type: 'DRIVE', value: dy < 0 ? intensity : -intensity};
+      }
+    }
+
+    function resetPad() {
+      handle.style.left = '80px';
+      handle.style.top = '80px';
+      currentCommand = null;
+    }
+
+    function sendCurrentCommand() {
+      if (currentCommand) {
+        fetch('/move', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(currentCommand)
+        });
+      }
+    }
+
+    handle.addEventListener('pointerdown', (e) => {
+      handle.setPointerCapture(e.pointerId);
+      updatePad(e.clientX, e.clientY);
+      sendInterval = setInterval(sendCurrentCommand, 100);
+    });
+
+    handle.addEventListener('pointermove', (e) => {
+      if (sendInterval !== null) {
+        updatePad(e.clientX, e.clientY);
+      }
+    });
+
+    handle.addEventListener('pointerup', () => {
+      clearInterval(sendInterval);
+      sendInterval = null;
+      resetPad();
+      fetch('/move', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({type: 'DRIVE', value: 0})
+      });
+    });
+
+    async function startScan() {
+      const scanButton = document.getElementById('scanButton');
+      scanButton.disabled = true;
+      scanButton.innerText = 'Scanning...';
+      setControlsEnabled(false);
+
+      const response = await fetch('/scan', { method: 'POST' });
+      const result = await response.json();
+
+      drawChart(result.data);
+      displayResults(result.data);
+
+      scanButton.disabled = false;
+      scanButton.innerText = 'Scan';
+      setControlsEnabled(true);
+    }
+
+    function setControlsEnabled(enabled) {
+      const opacity = enabled ? '1' : '0.4';
+      const pointerEvents = enabled ? 'auto' : 'none';
+      ['lightSlider', 'offButton', 'handle'].forEach(id => {
+        const el = document.getElementById(id);
+        el.style.opacity = opacity;
+        el.style.pointerEvents = pointerEvents;
+      });
+    }
+
+    function drawChart(data) {
+      const canvas = document.getElementById('ppiCanvas');
+      const ctx = canvas.getContext('2d');
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height - 10;
+      const maxRadiusPx = canvas.height - 20;
+      const maxDistance = 400;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      ctx.strokeStyle = '#555';
+      ctx.lineWidth = 1;
+      for (let d = 100; d <= maxDistance; d += 100) {
+        const r = (d / maxDistance) * maxRadiusPx;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, r, Math.PI, 2 * Math.PI);
+        ctx.stroke();
+      }
+
+      for (let a = 0; a <= 180; a += 30) {
+        const rad = a * Math.PI / 180;
+        const x = centerX + maxRadiusPx * Math.cos(rad);
+        const y = centerY - maxRadiusPx * Math.sin(rad);
+        ctx.beginPath();
